@@ -1,3 +1,5 @@
+import copy
+
 from database.distributore_DAO import DistributoreDAO
 
 '''
@@ -27,6 +29,21 @@ class Model:
         """
         # TODO
 
+        valori=[]
+        for distributore in self._distributori:
+            prezzi=distributore.get_prezzi()
+
+            prezzi_mese=[]
+            for prezzo in prezzi:
+                if prezzo.data.month == mese:
+                    prezzi_mese.append(prezzo.prezzo_litro)
+
+            if len(prezzi_mese)>0:
+                media=sum(prezzi_mese)/len(prezzi_mese)
+                valori.append((distributore.nome, media))
+
+        return valori
+
     def get_sequenza_ottima(self, mese:int):
         """
         Calcola la sequenza ottimale di rifornimenti nei primi 7 giorni
@@ -47,6 +64,29 @@ class Model:
     def __ricorsione(self, sequenza_parziale, giorno, ultimo_distributore, costo_corrente, prezzi_settimana):
         """ Implementa la ricorsione """
         # TODO
+        if giorno>7:
+
+            if self.__costo_ottimo == -1 or costo_corrente < self.__costo_ottimo:
+                self.__costo_ottimo = costo_corrente
+                self.__sequenza_ottima=copy.deepcopy(sequenza_parziale)
+
+
+        else:
+            for id, prezzi in prezzi_settimana.items():
+                costo_giorno=prezzi[giorno-1]*100
+
+                if ultimo_distributore is not None and id !=ultimo_distributore:
+                    costo_giorno= costo_giorno+5
+
+
+                sequenza_parziale.append(id)
+                self.__ricorsione(sequenza_parziale, giorno+1, id, costo_corrente+costo_giorno, prezzi_settimana)
+
+                sequenza_parziale.pop()
+
+
+
+
 
     def __get_prezzi_prima_settimana_mese(self, mese: int):
         """
@@ -54,3 +94,22 @@ class Model:
         :return: un dizionario: {id_distributore: [prezzo_giorno1, ..., prezzo_giorno7]}
         """
         # TODO
+        prezzi_sett={}
+
+        for distributore in self._distributori:
+            prezzi=distributore.get_prezzi()
+
+            prezzi_giorno={}
+
+            for prezzo in prezzi:
+                if prezzo.data.month == mese and prezzo.data.day<=7:
+                    prezzi_giorno[prezzo.data.day]=prezzo.prezzo_litro
+
+            lista_prezzi = []
+            for giorno in range(1,8):
+                lista_prezzi.append(prezzi_giorno[giorno])
+
+            prezzi_sett[distributore.id]=lista_prezzi
+
+
+        return prezzi_sett
